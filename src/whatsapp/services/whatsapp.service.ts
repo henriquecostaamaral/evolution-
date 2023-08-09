@@ -1598,19 +1598,19 @@ export class WAStartupService {
 
     try {
       if (options?.delay) {
-        this.logger.verbose('Delaying message');
+        //this.logger.verbose('Delaying message');
 
         await this.client.presenceSubscribe(sender);
-        this.logger.verbose('Subscribing to presence');
+        //this.logger.verbose('Subscribing to presence');
 
         await this.client.sendPresenceUpdate(options?.presence ?? 'composing', sender);
-        this.logger.verbose('Sending presence update: ' + options?.presence ?? 'composing');
+        //this.logger.verbose('Sending presence update: ' + options?.presence ?? 'composing');
 
         await delay(options.delay);
-        this.logger.verbose('Set delay: ' + options.delay);
+        //this.logger.verbose('Set delay: ' + options.delay);
 
         await this.client.sendPresenceUpdate('paused', sender);
-        this.logger.verbose('Sending presence update: paused');
+        //this.logger.verbose('Sending presence update: paused');
       }
 
       const linkPreview = options?.linkPreview != false ? undefined : false;
@@ -1678,7 +1678,7 @@ export class WAStartupService {
           sender !== 'status@broadcast'
         ) {
           if (!message['audio']) {
-            this.logger.verbose('Sending message');
+           // this.logger.verbose('Sending message');
             return await this.client.sendMessage(
               sender,
               {
@@ -1719,7 +1719,7 @@ export class WAStartupService {
           );
         }
 
-        this.logger.verbose('Sending message');
+        //this.logger.verbose('Sending message');
         return await this.client.sendMessage(
           sender,
           message as unknown as AnyMessageContent,
@@ -1772,7 +1772,7 @@ export class WAStartupService {
 
   // Send Message Controller
   public async textMessage(data: SendTextDto) {
-    this.logger.verbose('Sending text message');
+    //this.logger.verbose('Sending text message');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -1783,7 +1783,7 @@ export class WAStartupService {
   }
 
   public async pollMessage(data: SendPollDto) {
-    this.logger.verbose('Sending poll message');
+    //this.logger.verbose('Sending poll message');
     return await this.sendMessageWithTyping(
       data.number,
       {
@@ -1798,7 +1798,7 @@ export class WAStartupService {
   }
 
   private async formatStatusMessage(status: StatusMessage) {
-    this.logger.verbose('Formatting status message');
+   // this.logger.verbose('Formatting status message');
 
     if (!status.type) {
       throw new BadRequestException('Type is required');
@@ -1853,7 +1853,7 @@ export class WAStartupService {
       };
     }
     if (status.type === 'image') {
-      this.logger.verbose('Type defined as image');
+      //this.logger.verbose('Type defined as image');
 
       return {
         content: {
@@ -1868,7 +1868,7 @@ export class WAStartupService {
       };
     }
     if (status.type === 'video') {
-      this.logger.verbose('Type defined as video');
+      //this.logger.verbose('Type defined as video');
 
       return {
         content: {
@@ -1883,12 +1883,12 @@ export class WAStartupService {
       };
     }
     if (status.type === 'audio') {
-      this.logger.verbose('Type defined as audio');
+      //this.logger.verbose('Type defined as audio');
 
-      this.logger.verbose('Processing audio');
+      //this.logger.verbose('Processing audio');
       const convert = await this.processAudio(status.content, 'status@broadcast');
       if (typeof convert === 'string') {
-        this.logger.verbose('Audio processed');
+       //this.logger.verbose('Audio processed');
         const audio = fs.readFileSync(convert).toString('base64');
 
         const result = {
@@ -1914,7 +1914,7 @@ export class WAStartupService {
   }
 
   public async statusMessage(data: SendStatusDto) {
-    this.logger.verbose('Sending status message');
+    //this.logger.verbose('Sending status message');
     const status = await this.formatStatusMessage(data.statusMessage);
 
     return await this.sendMessageWithTyping('status@broadcast', {
@@ -1924,7 +1924,7 @@ export class WAStartupService {
 
   private async prepareMediaMessage(mediaMessage: MediaMessage) {
     try {
-      this.logger.verbose('Preparing media message');
+      //this.logger.verbose('Preparing media message');
       const prepareMedia = await prepareWAMessageMedia(
         {
           [mediaMessage.mediatype]: isURL(mediaMessage.media)
@@ -1935,94 +1935,93 @@ export class WAStartupService {
       );
 
       const mediaType = mediaMessage.mediatype + 'Message';
-      this.logger.verbose('Media type: ' + mediaType);
-
+      //this.logger.verbose('Media type: ' + mediaType);
       if (mediaMessage.mediatype === 'document' && !mediaMessage.fileName) {
-        this.logger.verbose('If media type is document and file name is not defined then');
+        //this.logger.verbose('If media type is document and file name is not defined then');
         const regex = new RegExp(/.*\/(.+?)\./);
         const arrayMatch = regex.exec(mediaMessage.media);
         mediaMessage.fileName = arrayMatch[1];
-        this.logger.verbose('File name: ' + mediaMessage.fileName);
+        //this.logger.verbose('File name: ' + mediaMessage.fileName);
       }
 
       let mimetype: string;
 
       if (isURL(mediaMessage.media)) {
         mimetype = getMIMEType(mediaMessage.media);
+        if(mimetype==='application/octet-stream') { mimetype ='image/png';}
       } else {
         mimetype = getMIMEType(mediaMessage.fileName);
       }
 
-      this.logger.verbose('Mimetype: ' + mimetype);
+      //this.logger.verbose('Mimetype: ' + mimetype);
 
       prepareMedia[mediaType].caption = mediaMessage?.caption;
       prepareMedia[mediaType].mimetype = mimetype;
       prepareMedia[mediaType].fileName = mediaMessage.fileName;
 
       if (mediaMessage.mediatype === 'video') {
-        this.logger.verbose('Is media type video then set gif playback as false');
+        //this.logger.verbose('Is media type video then set gif playback as false');
         prepareMedia[mediaType].jpegThumbnail = Uint8Array.from(
           readFileSync(join(process.cwd(), 'public', 'images', 'video-cover.png')),
         );
         prepareMedia[mediaType].gifPlayback = false;
       }
 
-      this.logger.verbose('Generating wa message from content');
+      //this.logger.verbose('Generating wa message from content');
       return generateWAMessageFromContent(
         '',
         { [mediaType]: { ...prepareMedia[mediaType] } },
         { userJid: this.instance.wuid },
       );
     } catch (error) {
-      this.logger.error(error);
+      //this.logger.error(error);
       throw new InternalServerErrorException(error?.toString() || error);
     }
   }
 
   private async convertToWebP(image: string, number: string) {
     try {
-      this.logger.verbose('Converting image to WebP to sticker');
+      //this.logger.verbose('Converting image to WebP to sticker');
 
       let imagePath: string;
       const hash = `${number}-${new Date().getTime()}`;
-      this.logger.verbose('Hash to image name: ' + hash);
+      //this.logger.verbose('Hash to image name: ' + hash);
 
       const outputPath = `${join(this.storePath, 'temp', `${hash}.webp`)}`;
-      this.logger.verbose('Output path: ' + outputPath);
-
+      //this.logger.verbose('Output path: ' + outputPath);
       if (isBase64(image)) {
-        this.logger.verbose('Image is base64');
+        //this.logger.verbose('Image is base64');
 
         const base64Data = image.replace(/^data:image\/(jpeg|png|gif);base64,/, '');
         const imageBuffer = Buffer.from(base64Data, 'base64');
         imagePath = `${join(this.storePath, 'temp', `temp-${hash}.png`)}`;
-        this.logger.verbose('Image path: ' + imagePath);
+        //this.logger.verbose('Image path: ' + imagePath);
 
         await sharp(imageBuffer).toFile(imagePath);
-        this.logger.verbose('Image created');
+        //this.logger.verbose('Image created');
       } else {
-        this.logger.verbose('Image is url');
+        //this.logger.verbose('Image is url');
 
         const timestamp = new Date().getTime();
         const url = `${image}?timestamp=${timestamp}`;
-        this.logger.verbose('including timestamp in url: ' + url);
+        //this.logger.verbose('including timestamp in url: ' + url);
 
         const response = await axios.get(url, { responseType: 'arraybuffer' });
-        this.logger.verbose('Getting image from url');
+        //this.logger.verbose('Getting image from url');
 
         const imageBuffer = Buffer.from(response.data, 'binary');
         imagePath = `${join(this.storePath, 'temp', `temp-${hash}.png`)}`;
-        this.logger.verbose('Image path: ' + imagePath);
+        //this.logger.verbose('Image path: ' + imagePath);
 
         await sharp(imageBuffer).toFile(imagePath);
-        this.logger.verbose('Image created');
+        //this.logger.verbose('Image created');
       }
 
       await sharp(imagePath).webp().toFile(outputPath);
-      this.logger.verbose('Image converted to WebP');
+      //this.logger.verbose('Image converted to WebP');
 
       fs.unlinkSync(imagePath);
-      this.logger.verbose('Temp image deleted');
+      //this.logger.verbose('Temp image deleted');
 
       return outputPath;
     } catch (error) {
@@ -2031,7 +2030,7 @@ export class WAStartupService {
   }
 
   public async mediaSticker(data: SendStickerDto) {
-    this.logger.verbose('Sending media sticker');
+    //this.logger.verbose('Sending media sticker');
     const convert = await this.convertToWebP(data.stickerMessage.image, data.number);
     const result = await this.sendMessageWithTyping(
       data.number,
@@ -2048,61 +2047,60 @@ export class WAStartupService {
   }
 
   public async mediaMessage(data: SendMediaDto) {
-    this.logger.verbose('Sending media message');
+    //this.logger.verbose('Sending media message');
     const generate = await this.prepareMediaMessage(data.mediaMessage);
-
     return await this.sendMessageWithTyping(data.number, { ...generate.message }, data?.options);
   }
 
   private async processAudio(audio: string, number: string) {
-    this.logger.verbose('Processing audio');
+    //this.logger.verbose('Processing audio');
     let tempAudioPath: string;
     let outputAudio: string;
 
     const hash = `${number}-${new Date().getTime()}`;
-    this.logger.verbose('Hash to audio name: ' + hash);
+    //this.logger.verbose('Hash to audio name: ' + hash);
 
     if (isURL(audio)) {
-      this.logger.verbose('Audio is url');
+      //this.logger.verbose('Audio is url');
 
       outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
       tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
 
-      this.logger.verbose('Output audio path: ' + outputAudio);
-      this.logger.verbose('Temp audio path: ' + tempAudioPath);
+      //this.logger.verbose('Output audio path: ' + outputAudio);
+      //this.logger.verbose('Temp audio path: ' + tempAudioPath);
 
       const timestamp = new Date().getTime();
       const url = `${audio}?timestamp=${timestamp}`;
 
-      this.logger.verbose('Including timestamp in url: ' + url);
+      //this.logger.verbose('Including timestamp in url: ' + url);
 
       const response = await axios.get(url, { responseType: 'arraybuffer' });
-      this.logger.verbose('Getting audio from url');
+      //this.logger.verbose('Getting audio from url');
 
       fs.writeFileSync(tempAudioPath, response.data);
     } else {
-      this.logger.verbose('Audio is base64');
+      //this.logger.verbose('Audio is base64');
 
       outputAudio = `${join(this.storePath, 'temp', `${hash}.mp4`)}`;
       tempAudioPath = `${join(this.storePath, 'temp', `temp-${hash}.mp3`)}`;
 
-      this.logger.verbose('Output audio path: ' + outputAudio);
-      this.logger.verbose('Temp audio path: ' + tempAudioPath);
+     // this.logger.verbose('Output audio path: ' + outputAudio);
+      //this.logger.verbose('Temp audio path: ' + tempAudioPath);
 
       const audioBuffer = Buffer.from(audio, 'base64');
       fs.writeFileSync(tempAudioPath, audioBuffer);
-      this.logger.verbose('Temp audio created');
+     // this.logger.verbose('Temp audio created');
     }
 
-    this.logger.verbose('Converting audio to mp4');
+    //this.logger.verbose('Converting audio to mp4');
     return new Promise((resolve, reject) => {
       exec(`${ffmpegPath.path} -i ${tempAudioPath} -vn -ab 128k -ar 44100 -f ipod ${outputAudio} -y`, (error) => {
         fs.unlinkSync(tempAudioPath);
-        this.logger.verbose('Temp audio deleted');
+        //this.logger.verbose('Temp audio deleted');
 
         if (error) reject(error);
 
-        this.logger.verbose('Audio converted to mp4');
+        //this.logger.verbose('Audio converted to mp4');
         resolve(outputAudio);
       });
     });
